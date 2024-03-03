@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+    traefik:
+        image: traefik:v3.0
+        restart: always
+        command:
+            --api
+            --accessLog=true
+            --metrics.prometheus=true
+            --providers.docker=true
+            --providers.docker.watch=true
+            --providers.docker.exposedByDefault=false
+            --entryPoints.http.address=:80
+            --entryPoints.http.http.redirections.entrypoint.to=https
+            --entryPoints.http.http.redirections.entrypoint.scheme=https
+            --entryPoints.https.address=:443
+            --certificatesResolvers.myResolver.acme.email=email@example.com
+            --certificatesResolvers.myResolver.acme.storage=acme.json
+            --certificatesResolvers.myResolver.acme.httpChallenge.entrypoint=http
+        ports:
+            - '443:443'
+            - '80:80'
+        networks:
+            - traefik-public
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-public
+
+            - traefik.http.routers.traefik-https.entryPoints=https
+            - traefik.http.routers.traefik-https.rule=Host(`traefik.example.com`)
+            - traefik.http.routers.traefik-https.service=api@internal
+            - traefik.http.routers.traefik-https.tls=true
+            - traefik.http.routers.traefik-https.tls.certResolver=myResolver
+            - traefik.http.middlewares.traefik-auth.basicAuth.users=${TRAEFIK_USERS}
+            - traefik.http.routers.traefik-https.middlewares=traefik-auth
+
+networks:
+    traefik-public:
+        external: true

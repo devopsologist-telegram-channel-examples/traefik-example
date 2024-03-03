@@ -1,0 +1,15 @@
+stages:
+    - deploy
+deploy:
+    stage: deploy
+    script:
+        - ssh -p 1234 gitlab-deploy@example.com "docker network create traefik-public || true"
+        - ssh -p 1234 gitlab-deploy@example.com "mkdir -p /home/gitlab-deploy/traefik"
+        - scp -P 1234 docker-compose.yaml gitlab-deploy@example.com:/home/gitlab-deploy/traefik
+        - ssh -p 1234 gitlab-deploy@example.com "cd /home/gitlab-deploy/traefik && TRAEFIK_USERS=${TRAEFIK_USERS} docker compose -p traefik pull"
+        - ssh -p 1234 gitlab-deploy@example.com "cd /home/gitlab-deploy/traefik && TRAEFIK_USERS=${TRAEFIK_USERS} docker compose -p traefik down || true"
+        - ssh -p 1234 gitlab-deploy@example.com "cd /home/gitlab-deploy/traefik && TRAEFIK_USERS=${TRAEFIK_USERS} docker compose -p traefik up -d"
+    only:
+        - main
+    tags:
+        - traefik
